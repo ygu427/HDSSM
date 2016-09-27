@@ -1,0 +1,3 @@
+importFrom(pracma, mldivide)
+importFrom(RUnit,defineTestSuite,runTestSuite)
+exportMethods("ssmal"，"learn_kalman")

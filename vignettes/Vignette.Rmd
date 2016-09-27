@@ -1,0 +1,91 @@
+---
+title: "Vignette"
+author: "Yu Gu"
+date: "Tuesday, July 26, 2016"
+output: html_document
+---
+
+### Introduction
+This package implements a high-dimensional linear State Space Model (SSM) with a new Expectation-Regularization-Network (ERM) algorithm to construct the dynamic gene regulatory network (GRN). The new ERM algorithm employs the idea of the adaptive LASSO-based variable selection method, which reserves the sparsity property of GRN.  
+A state space model (SSM) is a special case of dynamic Bayesian networks (DBNs). The linear SSM, also referred to linear dynamic systems, for dynamic gene regulatory network is employed in this package. For the time-series gene expression data, let $y_t$ represent a p-dimensional vector of gene expression observations of p genes at time t. In linear SSMs, $y_t$ is assumed to be generated from a k-dimensional real-valued hidden state viable vector $x_t$, and the sequence of evolving $x_t$ follows a first-order Markov process, $t=1,...,T$. A general linear SSM can be written as,
+\[x_t = Ax_{t-1}+w_t\]
+\[y_t = Cx_t+v_t\]
+where A is the $(k\times k)$ system matrix, C is the $(p\times k)$ observation matrix, and $w_t \sim N(0,Q)$ and $v_t \sim N(0,R)$ are independent system noise and measurement noise. Both $Q$ and $R$ are assumed to be diagnol in many practical applications. the initial state vector $x_0$ is usually assumed to be normally distributed with mean $\mu$ and covariance matrix $\Sigma$.
+
+### Method
+Using a linear SSM with an ERM algorithm to efficiently construct dynamic GRNs. Set the observation matrix C as an identity matrix, then our parameters is $\theta = (A,Q,R,\mu,\Sigma)$ and $\theta^{\ast} = (Q,R,\mu,\Sigma)$  
+
+##### **ERM algorithm**
+A three-step procedure to estimate the high-dimensional sparse system matrix A and other parameters as well as the state variables for linear SSMs. Kalman filter and smoother can be used to estimate the hidden states.  
+* E step: calculate the conditional expectation of the log likelihood. The sufficient statistics, state variables and their functions, required by latter steps, are obtained through the Kalman fileter and smoother.  
+* R step: the L1 regularization, adaptive LASSO method, is employed to obtain the estimate of the sparse system matrix A. The adaptive LASSO estimates is implemented by using the LARS algorithm.  
+* M Step: the MLE of $\theta^{\ast}$ is obtained by maximizing the conditional expectation of log likelihood.
+
+### Simulation Study
+Design simulation study to validate the methodology and the implementation procedure. Our validation simulation data has 8 genes and 60 time points. The system matrix A is $8\times 8$ with 15 nonzero elements. The observations matrix C is identity matrix with dimension as $8\times 8$. The variance matrices Q and R are diagnol matrices with dimension as $8\times 8$. The initial state $x_0 \sim N_8(0.1,1e-5)$ The maximum iteration is set as 30.
+```{r,echo=FALSE}
+ydir <- "C:/Users/ygu/Documents/GitHub/HDSSM/data/simData.txt"
+y <- read.table(ydir,header=FALSE)
+A0 <- matrix(c(0.739406926461408,0,0,0,0,0,0,0,
+               0,-0.415120354203656,-0.493845856625883,0,0,0,0,0,
+               0,0,0.774944265207722,0,0.733686364316085,0,0,0.828238690626113,
+               0,0,-0.499853721122885,-0.646177321882469,0,0.934092320881434,0,0,
+               0,0,0,0,0,0,-0.527036429295616,0,
+               0,0,0.0292994831822332,0,0,0,0,0,
+               0,0,0.0485022006196067,0,0,0,0.384709180682710,0,
+               0,0,0,-0.874761458269795,-0.732265207588082,0,0,0),nrow=8,
+             ncol=8,byrow=TRUE)
+C0 <- diag(1,8,8)
+Q0 <- diag(c(1.01062546204679,1.03206450437562,0.818799569249623,
+             0.834839145348486,0.842994966055149,1.05809741161297,
+             0.978635812786508,0.862042054934591),8,8)
+R0 <- diag(0.1,8,8)
+initx0 <- matrix(rep(0.1,8),ncol=1)
+initV0 <- diag(1e-5,8,8)
+max_iter<-30
+diagQ<-1
+diagR<-0
+ARmode<-0
+
+path <- "C:/Users/ygu/Documents/GitHub/HDSSM/R"
+sourceDir <- function(path, trace = TRUE, ...) {
+     for (nm in list.files(path, pattern = "\\.[RrSsQq]$")) {
+        if(trace) cat(nm,":")           
+        source(file.path(path, nm), ...)
+        if(trace) cat("\n")
+     }
+  }
+ 
+dir<-sourceDir(path)
+library("pracma")
+```
+
+Here is the (part of) validated simulation data
+```{r}
+y[1:8,1:8]
+```
+Here is the true system matrix. We will compare it with the estimated one via log likelihood method.
+```{r}
+A0
+```
+
+Here are some input parameters. max_iter is set as 30, the boolean parameters diagQ is set as TRUE, diagR is set as FALSE and ARmode is set as FALSE.
+```{r}
+max_iter
+diagQ
+diagR
+ARmode
+```
+
+Call the main function: row-based ERM algorithm
+```{r}
+ss<-ssmal(y,A0,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
+```
+
+Some results: the estimated system matrix A, the log likelihood LL and the BIC value bic
+```{r}
+ss$A
+ss$LL
+ss$bic
+```
+
