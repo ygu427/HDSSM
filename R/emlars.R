@@ -304,7 +304,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
       ga <- ga + diag(nrow(ga)) * regularization_factor
     }
 
-    invga <- Rinv(ga,diag(nrow(ga)))
+    invga <- Rinv(ga)
 
     aa <- sum(invga)^(-0.5)
     wa <- aa * rowSums(invga)

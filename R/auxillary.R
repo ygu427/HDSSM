@@ -2,10 +2,19 @@
 
 ## Rinv stands for ridge-regression inverse. This is the SVD version.
 Rinv <- function(Mat, s.prop=.1^6){
-    ss <- svd(Mat); svec <- ss[["d"]]; U <- ss[["u"]]; V <- ss[["v"]]
+  ss <- svd(Mat); svec <- ss[["d"]]; U <- ss[["u"]]; V <- ss[["v"]]
+  if( length(svec)==1){
+  ## If Mat is just a number, svec will have length 1. We simply
+  ## report the truncated inverse of this number. Note that in this
+  ## case, we should compare the singular value (which is just
+  ## abs(Mat)) to s.prop, not to sum(svec)*s.prop.
+    truncated.svec <- max(svec, s.prop)
+    inv.mat <- V * 1/truncated.svec * U
+  } else {
     truncated.svec <- pmax(svec, sum(svec)*s.prop)
     inv.mat <- V %*% diag(1/truncated.svec) %*% t(U)
-    return(inv.mat)
+  }
+  return(inv.mat)
 }
 
 ## GAUSSIAN_PROB Evaluate a multivariate Gaussian density.
@@ -42,4 +51,3 @@ gaussian_prob <- function (x,m,C,use_log=FALSE) {
   }
   return(p)
 }
-
