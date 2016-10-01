@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "sourceDir <- function(path, trace = TRUE, ...) {\n  for (nm in list.files(path, pattern = \"\\\\.[RrSsQq]$\")) {\n    if(trace) cat(nm,\":\")\n    source(file.path(path, nm), ...)\n    if(trace) cat(\"\\n\")\n  }\n}\n\ndir<-sourceDir(\"C:/Users/sunny/Dropbox/test/updateIrisR/R/HDSSM/R\")\n\nsetwd(\"C:/Users/sunny/Dropbox/test\")\nfile <- 'inddata15.txt'\nfile <- 'inddata6.txt'\ninputData <- read.table(file,sep = ',',header=TRUE)\n### the first column is useless\nsubject6 <- inputData[,-(1:2)]\nsave(subject6,file = 'subject6.rda')\nInfo6 <- inputData[,1:2]\nsave(Info6,file = 'Info6.rda')\n\n\n\ninitial.As <- Asinit(inputData)\nAs <- initial.As$As\n\nAs.mat <- read.table(\"testDat/ssmal/As.txt\",sep = '\\t',header=FALSE)\nrowSums(As-As.mat)\n\ninitial.Am <- Aminit(inputData)\nAm <- initial.Am$Am\n\n#sink(\"C:/Users/ygu/Dropbox/test/output/As.txt\")\n#Asinit(file)\n#sink()\n\n#sink(\"C:/Users/ygu/Dropbox/test/output/Am.txt\")\n#Aminit(file)\n#sink()\n\n###########################################################\n\ninitial.Arow <- Arow.init(subject15)\nArow <- initial.Arow$Arow\n\ninitial.Amat <- Amat.init(subject15)\nAmat <- initial.Amat$Amat\n\n### run ERM algorithm\nos <- ss <- nrow(Arow)\nC0 <- diag(os)\nQ0 <- diag(ss)\nR0 <- diag(os)\ninitx0 <- matrix(rep(0.1,ss),ncol=1)\ninitV0 <- diag(1e-5,ss,ss)\nmax_iter<-30\ndiagQ<-1\ndiagR<-0\nARmode<-0\ny <- initial.Arow$norm.data\n\n\n#debug(ssmal)\nss <- ssmal(y,Arow,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)\n#debug(learn_kalman)\nlk <- learn_kalman(y,Amat,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)\n",
+    "created" : 1475311992695.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3444985096",
+    "id" : "4C40E22B",
+    "lastKnownWriteTime" : 1475311977,
+    "last_content_update" : 1475311977,
+    "path" : "C:/Users/sunny/Dropbox/test/updateIrisR/runSim.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
