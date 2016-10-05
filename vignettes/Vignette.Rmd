@@ -1,7 +1,7 @@
 ---
 title: "Vignette"
 author: "Yu Gu"
-date: "Tuesday, July 26, 2016"
+date: "Friday, Sep. 30, 2016"
 output: html_document
 ---
 
@@ -21,52 +21,34 @@ A three-step procedure to estimate the high-dimensional sparse system matrix A a
 * R step: the L1 regularization, adaptive LASSO method, is employed to obtain the estimate of the sparse system matrix A. The adaptive LASSO estimates is implemented by using the LARS algorithm.  
 * M Step: the MLE of $\theta^{\ast}$ is obtained by maximizing the conditional expectation of log likelihood.
 
-### Simulation Study
-Design simulation study to validate the methodology and the implementation procedure. Our validation simulation data has 8 genes and 60 time points. The system matrix A is $8\times 8$ with 15 nonzero elements. The observations matrix C is identity matrix with dimension as $8\times 8$. The variance matrices Q and R are diagnol matrices with dimension as $8\times 8$. The initial state $x_0 \sim N_8(0.1,1e-5)$ The maximum iteration is set as 30.
+### Example
+Design simulation study to validate the methodology and the implementation procedure. Our microbiome data has 12 baterium and 29 time points. The system matrix A is $12\times 12$. The observations matrix C is identity matrix with dimension as $12\times 12$. The variance matrices Q and R are diagnol matrices with dimension as $12\times 12$. The initial state $x_0 \sim N_8(0.1,1e-5)$ The maximum iteration is set as 30.
 ```{r,echo=FALSE}
-ydir <- "C:/Users/ygu/Documents/GitHub/HDSSM/data/simData.txt"
-y <- read.table(ydir,header=FALSE)
-A0 <- matrix(c(0.739406926461408,0,0,0,0,0,0,0,
-               0,-0.415120354203656,-0.493845856625883,0,0,0,0,0,
-               0,0,0.774944265207722,0,0.733686364316085,0,0,0.828238690626113,
-               0,0,-0.499853721122885,-0.646177321882469,0,0.934092320881434,0,0,
-               0,0,0,0,0,0,-0.527036429295616,0,
-               0,0,0.0292994831822332,0,0,0,0,0,
-               0,0,0.0485022006196067,0,0,0,0.384709180682710,0,
-               0,0,0,-0.874761458269795,-0.732265207588082,0,0,0),nrow=8,
-             ncol=8,byrow=TRUE)
-C0 <- diag(1,8,8)
-Q0 <- diag(c(1.01062546204679,1.03206450437562,0.818799569249623,
-             0.834839145348486,0.842994966055149,1.05809741161297,
-             0.978635812786508,0.862042054934591),8,8)
-R0 <- diag(0.1,8,8)
-initx0 <- matrix(rep(0.1,8),ncol=1)
-initV0 <- diag(1e-5,8,8)
+library(HDSSM)
+initial.Arow <- Arow.init(subject15)
+Arow <- initial.Arow$Arow
+
+### run ERM algorithm
+os <- ss <- nrow(Arow)
+C0 <- diag(os)
+Q0 <- diag(ss)
+R0 <- diag(os)
+initx0 <- matrix(rep(0.1,ss),ncol=1)
+initV0 <- diag(1e-5,ss,ss)
 max_iter<-30
 diagQ<-1
 diagR<-0
 ARmode<-0
-
-path <- "C:/Users/ygu/Documents/GitHub/HDSSM/R"
-sourceDir <- function(path, trace = TRUE, ...) {
-     for (nm in list.files(path, pattern = "\\.[RrSsQq]$")) {
-        if(trace) cat(nm,":")           
-        source(file.path(path, nm), ...)
-        if(trace) cat("\n")
-     }
-  }
- 
-dir<-sourceDir(path)
-library("pracma")
+y <- initial.Arow$norm.data
 ```
 
-Here is the (part of) validated simulation data
+Here is the (part of) normalized data
 ```{r}
 y[1:8,1:8]
 ```
-Here is the true system matrix. We will compare it with the estimated one via log likelihood method.
+Here is the initial system matrix. 
 ```{r}
-A0
+Arow
 ```
 
 Here are some input parameters. max_iter is set as 30, the boolean parameters diagQ is set as TRUE, diagR is set as FALSE and ARmode is set as FALSE.
@@ -79,7 +61,7 @@ ARmode
 
 Call the main function: row-based ERM algorithm
 ```{r}
-ss<-ssmal(y,A0,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
+ss<-ssmal(y,Arow,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
 ```
 
 Some results: the estimated system matrix A, the log likelihood LL and the BIC value bic
