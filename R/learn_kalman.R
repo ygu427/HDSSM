@@ -22,7 +22,7 @@
 ##  Written by Yu Gu
 
 learn_kalman <- function(data,A,C,Q,R,initx,initV,max_iter=10,
-                         diagQ=0,diagR=0,ARmode=0,...){
+                         diagQ=0,diagR=0,ARmode=0, s.prop=.1^6, ...){
   
   verbose <- TRUE
   ## EM algorithm convergence likelihood func slope threshold
@@ -104,7 +104,7 @@ learn_kalman <- function(data,A,C,Q,R,initx,initV,max_iter=10,
   	
   	## R step (matrix-based)
   	Tsum1 <- Tsum -N
-  	Aols <- beta %*% Rinv(gamma1)   ## This is OLS/MLE
+  	Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)   ## This is OLS/MLE
   	w <- abs(matrix(t(Aols),1,ss^2))  ## raw adaptive lasso weights
   
   	XTX <- list()

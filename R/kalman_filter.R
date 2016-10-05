@@ -19,7 +19,7 @@
 ##  Latest Version on May. 2016
 ##  Written by Yu Gu
 
-kalman_filter<-function(y,A,C,Q,R,init_x,init_V,...) {
+kalman_filter<-function(y,A,C,Q,R,init_x,init_V, s.prop=.1^6, ...) {
   os <- nrow(y)    ## observation size
   Tp <- ncol(y)
   ss <- nrow(A)    ## state size
@@ -97,7 +97,7 @@ kalman_filter<-function(y,A,C,Q,R,init_x,init_V,...) {
       } else {
         i <- ndx[[t]]
         x[,t] <- prevx
-        prevP <- Rinv(prevV)
+        prevP <- Rinv(prevV, s.prop=s.prop)
         prevPsmall <- prevP[i,i]
         prevVsmall <- 1/prevPsmall
         ## Ain[i,i], Qin[i,i], prevx[i], prevVsmall is numeric
@@ -113,7 +113,7 @@ kalman_filter<-function(y,A,C,Q,R,init_x,init_V,...) {
 
         smallP <- 1/smallV
         prevP[i,i] <- smallP
-        V[,,t] <- Rinv(prevP)
+        V[,,t] <- Rinv(prevP, s.prop=s.prop)
       }
     }
     loglik <- loglik + LL

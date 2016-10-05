@@ -8,7 +8,7 @@
 ### Latest version: Sep.30th, 2016
 
 
-Arow.init <- function(inputData){
+Arow.init <- function(inputData, s.prop=.1^6){
   ### Normalization
   meanVector <- colMeans(inputData)
   meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
@@ -33,7 +33,7 @@ Arow.init <- function(inputData){
     }
   }
   gamma1 <- gamma - xsmooth[,Tp] %*% t(xsmooth[,Tp])
-  Aols <- beta %*% Rinv(gamma1)
+  Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)
 
   ### Starting from M step for ssmal
   As <- array()
@@ -89,7 +89,7 @@ Arow.init <- function(inputData){
 }
 
 
-Amat.init <- function(inputData){
+Amat.init <- function(inputData, s.prop=.1^6){
   ### Normalization
   meanVector <- colMeans(inputData)
   meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
@@ -114,7 +114,7 @@ Amat.init <- function(inputData){
     }
   }
   gamma1 <- gamma - xsmooth[,Tp] %*% t(xsmooth[,Tp])
-  Aols <- beta %*% Rinv(gamma1)
+  Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)
 
   ### Starting from M step for learn_kalman
   w <- abs(matrix(t(Aols),1,ss^2))  ## raw adaptive lasso weights
@@ -137,7 +137,7 @@ Amat.init <- function(inputData){
 
   ## LARS-Lasso
   stopCriterion = list()
-  stopCriterion[[1]] <- c("manKernels",100)
+  stopCriterion[[1]] <- c("maxKernels",100)
   main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
                  stopCriterion = stopCriterion)
   sol <- main$history

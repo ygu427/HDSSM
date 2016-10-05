@@ -31,7 +31,7 @@
 
 
 emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
-                    trace=FALSE,quiet=FALSE){
+                    trace=FALSE,quiet=FALSE, s.prop=.1^6){
   resolution_of_lars <- 1e-12
   ## Tikhonov regularization factor (or the ridge regression factor)
   regularization_factor <- 1e-11
@@ -226,14 +226,14 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
           }
         }# end checking maximum number of drops
 
-        # Maximum number of kernels.
-        if (stopCriterion[[is]][1]=="maxKernels"){
-          if (length(active)>=min(as.numeric(stopCriterion[[is]][2]),nrow(xin)-1,length(all_candidate))){
-            stopReason[[1]]<-"maxKernels"
-            stopReason[[2]]<-length(active)
-            break
-          }
-        } # end checking maximum number of kernels
+        ## # Maximum number of kernels.
+        ## if (stopCriterion[[is]][1]=="maxKernels"){
+        ##   if (length(active)>=min(as.numeric(stopCriterion[[is]][2]),nrow(xin)-1,length(all_candidate))){
+        ##     stopReason[[1]]<-"maxKernels"
+        ##     stopReason[[2]]<-length(active)
+        ##     break
+        ##   }
+        ## } # end checking maximum number of kernels
 
         # Maximum number of iterations
         if (stopCriterion[[is]][1]=="maxIterations") {
@@ -257,7 +257,8 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
 
     if (length(stopReason)>0){
       ## if there is any reason of stopping the algorithm, exit loop
-      stop(stopReason)
+      ## stop(stopReason)
+      break
     }
 
     #################################################
@@ -304,7 +305,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
       ga <- ga + diag(nrow(ga)) * regularization_factor
     }
 
-    invga <- Rinv(ga)
+    invga <- Rinv(ga, s.prop=s.prop)
 
     aa <- sum(invga)^(-0.5)
     wa <- aa * rowSums(invga)

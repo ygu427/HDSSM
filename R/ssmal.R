@@ -5,7 +5,7 @@
 ##  Written by Yu Gu
 
 ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
-                  diagR=FALSE,ARmode=FALSE, ...){
+                  diagR=FALSE,ARmode=FALSE, s.prop=.1^6, ...){
   verbose <- TRUE
   ## EM algorithm convergence likelihood func slope threshold
   thresh <- 5e-3
@@ -85,7 +85,7 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
 
     ## R step (row-based)
     Tsum1 <- Tsum -N
-    Aols <- beta %*% Rinv(gamma1)   ## This is OLS/MLE
+    Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)   ## This is OLS/MLE
     A <- array()
 
     XTX <- list()
