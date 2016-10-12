@@ -287,7 +287,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
                     But it is being ignored here...\n")
           }
           active[which(active==C_max_ind)] <- NA
-          sort(active, na.last = NA) ## eliminate NA value
+          active <- sort(active, na.last = NA) ## eliminate NA value
         }
         C_max_ind <- NA
         C_max_ind_pl <- NA
