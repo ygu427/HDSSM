@@ -8,7 +8,7 @@
 ### Latest version: Sep.30th, 2016
 
 
-Arow.init <- function(inputData, s.prop=.1^6){
+Arow.init <- function(inputData, s.prop=.1^6, ...){
   ### Normalization
   meanVector <- colMeans(inputData)
   meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
@@ -48,18 +48,8 @@ Arow.init <- function(inputData, s.prop=.1^6){
     XTX$xtx <- gamma1 * ww
     XTX$xty <- t(beta[k,]*w)
 
-    ## LARS-Lasso
-<<<<<<< HEAD
-    stopCriterion = list()
-    stopCriterion[[1]] <- c("maxIterations",100)
-    main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
-=======
-    stopCriterion <- list(c('maxKernels',100),
-                          c('maxIterations',50),
-                          c('maxMSE', 1e-10))
-    main <- emlars(yin = ylm,xin = xs,XTX = XTX, regressiontype = "lasso",
->>>>>>> origin/master
-                   stopCriterion = stopCriterion)
+    ## LASSO
+    main <- emlars(ylm, xs, XTX, s.prop=s.prop, ...)
     sol <- main$history
 
     ## select min bic
@@ -96,7 +86,7 @@ Arow.init <- function(inputData, s.prop=.1^6){
 }
 
 
-Amat.init <- function(inputData, s.prop=.1^6){
+Amat.init <- function(inputData, s.prop=.1^6, ...){
   ### Normalization
   meanVector <- colMeans(inputData)
   meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
@@ -142,12 +132,8 @@ Amat.init <- function(inputData, s.prop=.1^6){
   XTX$xtx <- kronecker(diag(ss),gamma1) * ww
   XTX$xty <- matrix(t(beta),ss^2,1) * t(w)
 
-  ## LARS-Lasso
-  stopCriterion <- list(c('maxKernels',100),
-                        c('maxIterations',50),
-                        c('maxMSE', 1e-10))
-  main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
-                 stopCriterion = stopCriterion)
+  ## LASSO
+  main <- emlars(ylm, xs,XTX, s.prop=s.prop, ...)
   sol <- main$history
 
   ### select min bic

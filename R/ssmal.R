@@ -85,7 +85,17 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
 
     ## R step (row-based)
     Tsum1 <- Tsum -N
-    Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)   ## This is OLS/MLE
+
+    ## 10/13/2016.  Xing added an option of LargeP
+    svec <- svd(gamma1)$d
+    if (min(svec)< max(svec)*.1^10 && length(gamma1)!=1) {
+      ## This is the large p, small n case.
+      Aols <- beta %*% Rinv(diag(gamma1), s.prop=s.prop)   ## Equation (18)
+    } else {                            #small p case
+      Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)   ## This is OLS/MLE
+    }
+
+
     A <- array()
 
     XTX <- list()
@@ -101,10 +111,7 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
       XTX$xty <- t(beta[k,]*w)
 
       ## LARS-Lasso
-      stopCriterion = list()
-      stopCriterion[[1]] <- c("maxIterations",max_iter)
-      main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
-                     stopCriterion = stopCriterion)
+      main <- emlars(ylm, xs, XTX, ...)
       sol <- main$history
 
       ## select min bic
