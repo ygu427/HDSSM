@@ -50,7 +50,7 @@ Arow.init <- function(inputData, s.prop=.1^6){
 
     ## LARS-Lasso
     stopCriterion = list()
-    stopCriterion[[1]] <- c("maxKernels",100)
+    stopCriterion[[1]] <- c("maxIterations",100)
     main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
                    stopCriterion = stopCriterion)
     sol <- main$history

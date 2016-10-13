@@ -1,0 +1,21 @@
+{
+    "debugBreakpointsState" : {
+        "breakpoints" : [
+            {
+                "editor_line_number" : 39,
+                "editor_state" : 1,
+                "function_name" : "Arow.init",
+                "function_steps" : "17",
+                "id" : 7,
+                "is_package_breakpoint" : false,
+                "is_pending_debug_completion" : true,
+                "line_number" : 39,
+                "needs_updated_steps" : false,
+                "package_name" : "",
+                "path" : "~/GitHub/HDSSM/R/initialization.R",
+                "state" : 1,
+                "type" : 0
+            }
+        ]
+    }
+}

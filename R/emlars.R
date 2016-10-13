@@ -15,8 +15,8 @@
 #
 #
 # Example: moderate size x.
-#     stopCrioterion <- list()
-#     stopCrioterion[[1]] = c('maxKernels',100)
+#     stopCriterion <- list()
+#     stopCriterion[[1]] = c('maxKernels',100)
 #
 # Note:
 #     Users can add any kind of stop criterion by editing
@@ -36,35 +36,23 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
   ## Tikhonov regularization factor (or the ridge regression factor)
   regularization_factor <- 1e-11
 
-  ## Notify the user what cause "stop".
-  stopReason <- list()
-
   # Check Parameters
   if (length(yin) == 0 | length(xin) == 0){
-    warning("\n Input or Output has zero length.\n")
-    stopReason[[1]] <- "Parameter error"
-    stopReason[[2]] <- 0
-    stop(stopReason)
+    warning("\n Input has zero length.\n")
+    return()
   }
   if (nrow(yin) != nrow(xin)){
     warning("\n Size of y does not match to that of x.\n")
-    stopReason[[1]] <-"Parameter error"
-    stopReason[[2]] <- 0
-    stop(stopReason)
+    return()
   }
   if ((regressiontype!="lasso")&(regressiontype!="lars")&(regressiontype!="forward_stepwise")){
     warning("\n Unknown type of regression.\n")
-    stopReason[[1]] <- "Parameter error"
-    stopReason[[2]] <- 0
-    stop(stopReason)
+    return()
   }
   if (regressiontype=="forward_stepwise"){
     warning("\n Forward_stepwise is not implemented.\n")
-    stopReason[[1]] <- "Parameter error"
-    stopReason[[2]] <- 0
-    stop(stopReason)
+    return()
   }
-
 
   if (!missing(regularization)){
     if (!is.na(regularization)) {
@@ -72,9 +60,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
     }
   }
 
-  if (!missing(quiet)) {
-    if (quiet) {trace <- FALSE}
-  }
+  if (quiet) {trace <- FALSE}
 
   ##########################################################
   ###                                                    ###
@@ -103,9 +89,10 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
   for(is in 1:length(stopCriterion)){
     if (stopCriterion[[is]][1]=="maxKernels"){
       existMaxKernels <-TRUE
-      stopCriterion[[is]][2] <- min(qr(xin)$rank,length(all_candidate))
+      maxKernel <- min(stopCriterion[[is]][2],qr(xin)$rank,p)
+      stopCriterion[[is]][2] <- maxKernel
       if (as.numeric(stopCriterion[[is]][2])<1){
-        warning("\n Max Kernel is less than 1. It must be larger than 0.\n")
+        warning("\n Max Kernel is less than 1. It's reset as 1.\n")
         stopCriterion[[is]][2] <-1
       }
     }
@@ -121,7 +108,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
 
   if (!existMaxKernels) {
     is <- length(stopCriterion)
-    stopCriterion[[is+1]]<-c("maxKernels",min(qr(xin)$rank,length(all_candidate)))
+    stopCriterion[[is+1]]<-c("maxKernels",min(qr(xin)$rank,p))
   }
 
   if (!existMSE){
@@ -170,9 +157,8 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
   history[[1]]$resolution_warning <- array(NA)
 
   if (diag(var(yin))==0){
-    stopReason[[1]]<-"zeroVarY"
-    stopReason[[2]]<-diag(var(yin))
-    stop(stopReason)
+    warning("\n ZeroVarY \n")
+    return()
   }
 
   ########################################################
@@ -185,7 +171,8 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
   C_max <- NA
   C_max_ind <- vector()
   C_max_ind_pl <- vector()
-  dropmatrix <- array(NA)   #used for "lasso"
+  dropmatrix <- array()   #used for "lasso"
+  stopReason <- data.frame(Stop_Reason=NA,Value=NA)
   k <- 1
 
   while (TRUE) {
@@ -213,16 +200,15 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
 
           # drop_n: number of maximum drops within the window.
           drop_n<-min(drop_window,as.numeric(stopCriterion[[is]][3]))
-          drop_vector<-array(NA)
+          drop_vector<-array()
 
           for (z in max(k-drop_window+1,1):k){
-            drop_vector<-cbind(drop_vector,history[[k]]$dropmatrix)
+            drop_vector<-cbind(drop_vector,history[[z]]$dropmatrix)
           }
 
           if (length(drop_vector)>=drop_n){
-            stopReason[[1]]<-"maxDrops"
-            stopReason[[2]]<-drop_n
-            break
+            msg <- c("maxDrops",drop_n)
+            stopReason[nrow(stopReason)+1,] <- msg
           }
         }# end checking maximum number of drops
 
@@ -238,26 +224,24 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
         # Maximum number of iterations
         if (stopCriterion[[is]][1]=="maxIterations") {
           if (k>= as.numeric(stopCriterion[[is]][2])){
-            stopReason[[1]]<-"maxIterations"
-            stopReason[[2]]<-k
-            break
+            msg <- c("maxIterations",k)
+            stopReason[nrow(stopReason)+1,] <- msg
           }
         }# end checking maximum number of iterations
 
         # MSE
         if (stopCriterion[[is]][1]=="MSE") {
           if (history[[k]]$MSE<=as.numeric(stopCriterion[[is]][2])){
-            stopReason[[1]]<-"MSE"
-            stopReason[[2]]<-history[[k]]$MSE
-            break
+            msg <- c("MSE",history[[k]]$MSE)
+            stopReason[nrow(stopReason)+1,] <- msg
           }
         }
       }
     }# end of stop criterion checking
 
-    if (length(stopReason)>0){
+
+    if (nrow(stopReason)>1){
       ## if there is any reason of stopping the algorithm, exit loop
-      ## stop(stopReason)
       break
     }
 
@@ -360,7 +344,7 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
     tmp1[active] <- -(beta[active] / d[active])   ##gamma_j
     tmp2 <- tmp1[which(tmp1>0)]     ##{gamma_j:gamma_j>0}
 
-    dropmatrix <- array()
+    dropmatrix <- array()    ### why define again?
     gamma_tilde <- Inf
     if (length(tmp2)!=0) {
       if (gamma >= min(tmp2)){
@@ -415,8 +399,8 @@ emlars <- function (yin,xin,XTX,regressiontype,stopCriterion,regularization=0,
 
     ## exit if exact matching is achieved.
     if (abs(C_max/aa - min(gamma,gamma_tilde))<resolution_of_lars) {
-      stopReason[[1]] <- "ExactMatching"
-      stopReason[[2]] <- 0
+      msg <- c("ExactMatching",0)
+      stopReason[nrow(stopReason)+1,] <- msg
       break
     }
   }

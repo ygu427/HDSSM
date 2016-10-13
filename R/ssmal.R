@@ -102,7 +102,7 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
 
       ## LARS-Lasso
       stopCriterion = list()
-      stopCriterion[[1]] <- c("maxKernels",100)
+      stopCriterion[[1]] <- c("maxIterations",max_iter)
       main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
                      stopCriterion = stopCriterion)
       sol <- main$history
