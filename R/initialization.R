@@ -49,9 +49,16 @@ Arow.init <- function(inputData, s.prop=.1^6){
     XTX$xty <- t(beta[k,]*w)
 
     ## LARS-Lasso
+<<<<<<< HEAD
     stopCriterion = list()
     stopCriterion[[1]] <- c("maxIterations",100)
     main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
+=======
+    stopCriterion <- list(c('maxKernels',100),
+                          c('maxIterations',50),
+                          c('maxMSE', 1e-10))
+    main <- emlars(yin = ylm,xin = xs,XTX = XTX, regressiontype = "lasso",
+>>>>>>> origin/master
                    stopCriterion = stopCriterion)
     sol <- main$history
 
@@ -85,7 +92,7 @@ Arow.init <- function(inputData, s.prop=.1^6){
   }
   As <- As[-1,]
 
-  return(list(Arow=As, norm.data=xsmooth))
+  return(list(Ainit=As, norm.data=xsmooth))
 }
 
 
@@ -136,8 +143,9 @@ Amat.init <- function(inputData, s.prop=.1^6){
   XTX$xty <- matrix(t(beta),ss^2,1) * t(w)
 
   ## LARS-Lasso
-  stopCriterion = list()
-  stopCriterion[[1]] <- c("maxKernels",100)
+  stopCriterion <- list(c('maxKernels',100),
+                        c('maxIterations',50),
+                        c('maxMSE', 1e-10))
   main <- emlars(yin = ylm,xin = xs,XTX = XTX,regressiontype = "lasso",
                  stopCriterion = stopCriterion)
   sol <- main$history
@@ -171,5 +179,5 @@ Amat.init <- function(inputData, s.prop=.1^6){
   temp <- sol[[ks+1]]$beta * w
   Am <- matrix(temp,ss,ss,byrow = TRUE)
 
-  return(list(Amat=Am,norm.data=xsmooth))
+  return(list(Ainit=Am,norm.data=xsmooth))
 }
