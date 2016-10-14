@@ -3,9 +3,9 @@ Type: Package
 Title: High-dimensional linear SSM for dynamic GRN
 Version: 1.0
 Date: 2016-07-26
-Author: Yu Gu
+Author: Yu Gu supervised by Xing Qiu
 Maintainer: Yu Gu <yu_gu@urmc.rochester.edu>
 Depends: R (>= 3.1)
 Description: A high-dimensional linear State Space Model(SSM) with a new Expectation-Regularization-Maximization(ERM) algorithm to construct the dynamic Gene Regularization Network(GRN). The new ERM algorithm employs the idea of the adaptive LASSO-based variable selection method to preserve the sparsity property of GRN.
-License: GPL-3
+License: GPL-2
 LazyData: true

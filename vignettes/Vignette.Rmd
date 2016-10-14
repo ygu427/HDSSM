@@ -22,11 +22,11 @@ A three-step procedure to estimate the high-dimensional sparse system matrix A a
 * M Step: the MLE of $\theta^{\ast}$ is obtained by maximizing the conditional expectation of log likelihood.
 
 ### Example
-Design simulation study to validate the methodology and the implementation procedure. Our microbiome data has 12 baterium and 29 time points. The system matrix A is $12\times 12$. The observations matrix C is identity matrix with dimension as $12\times 12$. The variance matrices Q and R are diagnol matrices with dimension as $12\times 12$. The initial state $x_0 \sim N_8(0.1,1e-5)$ The maximum iteration is set as 30.
+Design simulation study to validate the methodology and the implementation procedure. Our microbiome data has 12 baterium and 29 time points. The system matrix A is $12\times 12$. The observations matrix C is identity matrix with dimension as $12\times 12$. The variance matrices Q and R are diagnol matrices with dimension as $12\times 12$. The initial state $x_0 \sim N_8(0.1,10^{-5})$ The maximum iteration is set as 100.
 ```{r,echo=FALSE}
 library(HDSSM)
-initial.Arow <- Arow.init(subject15)
-Arow <- initial.Arow$Arow
+initial.Arow <- Ainit(subject15)
+Arow <- initial.Arow$Ainit
 
 ### run ERM algorithm
 os <- ss <- nrow(Arow)
@@ -35,7 +35,7 @@ Q0 <- diag(ss)
 R0 <- diag(os)
 initx0 <- matrix(rep(0.1,ss),ncol=1)
 initV0 <- diag(1e-5,ss,ss)
-max_iter<-30
+max_iter <- 100
 diagQ<-1
 diagR<-0
 ARmode<-0
@@ -51,7 +51,7 @@ Here is the initial system matrix.
 Arow
 ```
 
-Here are some input parameters. max_iter is set as 30, the boolean parameters diagQ is set as TRUE, diagR is set as FALSE and ARmode is set as FALSE.
+Here are some input parameters. max_iter is set as 100, the boolean parameters diagQ is set as TRUE, diagR is set as FALSE and ARmode is set as FALSE.
 ```{r}
 max_iter
 diagQ
@@ -61,13 +61,23 @@ ARmode
 
 Call the main function: row-based ERM algorithm
 ```{r}
-ss<-ssmal(y,Arow,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
+ss<-rowbaseEMR(y,Arow,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
 ```
 
 Some results: the estimated system matrix A, the log likelihood LL and the BIC value bic
 ```{r}
-ss$A
+ss$estA
 ss$LL
 ss$bic
 ```
+call the main function: matrix-based ERM algorithm
+```{r}
+lk <- matbaseERM(y,Arow,C0,Q0,R0,initx0,initV0,max_iter,diagQ,diagR,ARmode)
+```
 
+some results: the estimated system matrix A, the log likelihood LL and the BIC value bic
+```{r}
+lk$estA
+lk$LL
+lk$bic
+```
