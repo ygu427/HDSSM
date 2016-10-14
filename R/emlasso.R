@@ -14,23 +14,14 @@
 # contains y.
 #
 #
-# Example: moderate size x.
-#     stopCriterion <- list()
-#     stopCriterion[[1]] = c('maxKernels',100)
-#
 # Note:
-#     Users can add any kind of stop criterion by editing
-#     the corresponding portion of this file.  See the code
-#     for existing examples.
-#
-# Note 2:
 #     This file does not implement routine for missing data.
 #
-# Latest Version on May. 2016
+# Latest Version on Oct. 2016
 # Wriiten by Yu Gu
 
 
-emlars <- function (y,x,XTX,
+emlasso <- function (y,x,XTX,
                     maxIterations=100,
                     maxMSE=1e-10,
                     trace=FALSE,quiet=FALSE,
@@ -44,7 +35,7 @@ emlars <- function (y,x,XTX,
     stop("\n Size of y does not match to that of x.\n")
   }
 
-  if (quiet) {trace <- FALSE}
+  if (quiet) trace <- FALSE
 
   ##########################################################
   ###                                                    ###
@@ -65,7 +56,7 @@ emlars <- function (y,x,XTX,
   my <- 0   ## mean of y, i.e., mean(y)
 
   # Determine the maximum number of kernels
-  maxKernel <- min(qr(x)$rank, p)
+  maxKernels <- min(qr(x)$rank, p)
 
   if (maxMSE < 1e-10){
     warning("\n Maximum MSE is too small. Automatically set to 1.0e-10\n")
@@ -78,13 +69,13 @@ emlars <- function (y,x,XTX,
   ###                                                     ###
   ###########################################################
 
-  active <- NA    # active set
+  active <- vector()    # active set
   inactive <- all_candidate # inactive set
 
   mu_a <- matrix(0,n,1)   # current estimate
   mu_a_plus <- mu_a     # next estimate
   mu_a_OLS <- mu_a      # OLS estimate
-  beta <- matrix(0,1,ncol(x))
+  beta <- matrix(0,1,p)
   beta_new <- beta
   beta_OLS <- beta
 
@@ -95,26 +86,25 @@ emlars <- function (y,x,XTX,
   history<-list()
   history[[1]]<-list()
 
-  history[[1]]$active_set <- NA
-  history[[1]]$add <- NA
-  history[[1]]$dropmatrix <- array(NA)
-  history[[1]]$beta_norm <- array(NA)
-  history[[1]]$beta <- array(NA)
-  history[[1]]$df <- NA
-  history[[1]]$rss <- NA
+  history[[1]]$active_set <- vector()
+  history[[1]]$add <- vector()
+  history[[1]]$dropmatrix <- array()
+  history[[1]]$beta_norm <- array()
+  history[[1]]$beta <- array()
+  history[[1]]$df <- vector()
+  history[[1]]$rss <- vector()
   history[[1]]$b <- my
   history[[1]]$mu <- my
-  history[[1]]$beta_OLS_norm <- array(NA)
-  history[[1]]$beta_OLS <- array(NA)
+  history[[1]]$beta_OLS_norm <- array()
+  history[[1]]$beta_OLS <- array()
   history[[1]]$b_OLS <- my
   history[[1]]$mu_OLS <- my * array(1,dim=dim(y))
   history[[1]]$MSE <- colSums(y^2)/length(y)
   history[[1]]$R_square <-0
-  history[[1]]$resolution_warning <- array(NA)
+  history[[1]]$resolution_warning <- array()
 
   if (diag(var(y))==0){
-    warning("\n ZeroVarY \n")
-    return()
+    stop("\n ZeroVarY \n")
   }
 
   ########################################################
@@ -123,12 +113,13 @@ emlars <- function (y,x,XTX,
   ###                                                  ###
   ########################################################
 
-  c<-NA
-  C_max <- NA
+  #c<-NA
+  #C_max <- NA
   C_max_ind <- vector()
   C_max_ind_pl <- vector()
   dropmatrix <- array()   #used for "lasso"
-  stopReason <- data.frame(Stop_Reason=NA,Value=NA)
+  stopReason <- data.frame(Stop_Reason=character(),Value=vector(),
+                           stringsAsFactors = FALSE)
   k <- 1
 
   while (TRUE) {
@@ -137,9 +128,8 @@ emlars <- function (y,x,XTX,
     ###           Exit Criterions            ###
     ############################################
 
-    ## If there is any stop criterion
-    ## Any of these is satisfied, algorithm stops.
-    ## Other criterion: make your own cost function
+    ### check whether any of the stop criterion is matched
+    ### return all stop reasons, if any, including maxKernel, maxIteration, and maxMSE
 
     if (length(active)>=min(maxKernels, nrow(x)-1,length(all_candidate))){
       msg <- c("maxKernel", length(active))
@@ -158,8 +148,8 @@ emlars <- function (y,x,XTX,
       msg <- c("MSE", history[[k]]$MSE)
       stopReason[nrow(stopReason)+1,] <- msg
     }
-  }# end of stop criterion checking
-  if (nrow(stopReason)>1){
+
+  if (nrow(stopReason)>0){
     ## if there is any reason of stopping the algorithm, exit loop
     break
   }
@@ -168,8 +158,8 @@ emlars <- function (y,x,XTX,
   ###             LASSO Algorithm                ##
   #################################################
 
-  c <- xty - t(x) %*% mu_a  # x'(y-mu_a) the current correlation
-  c1 <- abs(c[inactive])
+  curr.cor <- xty - t(x) %*% mu_a  # x'(y-mu_a) the current correlation
+  c1 <- abs(curr.cor[inactive])
   C_max <- max(c1)
   C_max_ind <- inactive[which(c1==C_max)]
 
@@ -181,25 +171,23 @@ emlars <- function (y,x,XTX,
   active <- sort(union(active,C_max_ind_pl), na.last = NA)
   inactive <- setdiff(all_candidate,active)
 
-  if (regressiontype == "lasso"){
-    ## If there is a drop, that must have the maximum correlation in inactive set.
-    if (!is.na(dropmatrix)) {
-      if (length(which(dropmatrix==C_max_ind))==0) {
-        if ((!quiet) & (trace>=0)){
-          warning("\n Dropped item and index of maximum correlation is not the same.
+  ## If there is a drop, that must have the maximum correlation in inactive set.
+  if (!is.na(dropmatrix)) {
+    if (length(which(dropmatrix==C_max_ind))==0) {
+      if ((!quiet) & (trace>=0)){
+        warning("\n Dropped item and index of maximum correlation is not the same.
                     But it is being ignored here...\n")
-        }
-        active[which(active==C_max_ind)] <- NA
-        active <- sort(active, na.last = NA) ## eliminate NA value
       }
-      C_max_ind <- NA
-      C_max_ind_pl <- NA
+      active[which(active==C_max_ind)] <- NA
+      active <- sort(active, na.last = NA) ## eliminate NA value
     }
+    C_max_ind <- NA
+    C_max_ind_pl <- NA
+  }
     active <- setdiff(active,dropmatrix)
     inactive <- sort(union(inactive,dropmatrix))
-  }
 
-  s <- sign(c[active])
+  s <- sign(curr.cor[active])
   xa <- as.matrix(x[,active]) * repmat(t(s),n,1)
   ga <- xtx[active,active] * (s %*% t(s))
 
@@ -225,23 +213,23 @@ emlars <- function (y,x,XTX,
   history[[k]]$resolution_warning <- 0
   thresh.tmp <- resolution_of_lars*100
   if ((test_1_2 > thresh.tmp)|(test_3 > thresh.tmp)) {
-    if (regularization <=2 ) {
-      if ((!quiet) & trace){
-        warning("\n Eq 2.7 test failure. \n")
-      }
-      regularization <- regularization + 1
-      if (regularization > 2) {
-        if((!quiet) & trace){
-          warning("\n Lots of Eq 2.7 test failure. Regularization will be applied from now on.\n")
-        }
-      }
-    }
+    # if (regularization <=2 ) {
+    #   if ((!quiet) & trace){
+    #     warning("\n Eq 2.7 test failure. \n")
+    #   }
+    #   regularization <- regularization + 1
+    #   if (regularization > 2) {
+    #     if((!quiet) & trace){
+    #       warning("\n Lots of Eq 2.7 test failure. Regularization will be applied from now on.\n")
+    #     }
+    #   }
+    # }
     history[[k]]$resolution_warning <- 1
   }
 
   a <- t(x) %*% ua
-  tmp_1 <- (C_max - c[inactive])/(aa - a[inactive])
-  tmp_2 <- (C_max + c[inactive])/(aa + a[inactive])
+  tmp_1 <- (C_max - curr.cor[inactive])/(aa - a[inactive])
+  tmp_2 <- (C_max + curr.cor[inactive])/(aa + a[inactive])
   tmp_3 <- cbind(tmp_1,tmp_2)
   tmp <- as.matrix(tmp_3[which(tmp_3>0)])
 

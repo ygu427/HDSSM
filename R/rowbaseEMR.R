@@ -1,46 +1,23 @@
-## ssmal is row-based ERM algorithm. The difference between row-based and
+## rowbaseEMR is row-based ERM algorithm. The difference between row-based and
 ## matrix based is in the R step.
 ##
-##  Latest Version on May.2016
+##  Latest Version on Oct.2016
 ##  Written by Yu Gu
 
-ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
+rowbaseEMR <- function(y,initA,initC,initQ,initR,initx,initV,max_iter=100,diagQ=FALSE,
                   diagR=FALSE,ARmode=FALSE, s.prop=.1^6, ...){
   verbose <- TRUE
   ## EM algorithm convergence likelihood func slope threshold
   thresh <- 5e-3
-  if (length(dim(data))<3) {
-    N <- 1
-  } else {
-    N <- dim(data)[3]
-  }
 
-  dataList <- list()
-
-  if (N==1) {
-    dataList[[N]]<-data
-  } else {
-    for (i in 1:N) {
-      ## each elt of the 3rd dim gets its own cell
-      dataList[[i]]<-data[,,i]
-    }
-  }
-
-  ss <- nrow(A)     ## state size
-  os <- nrow(C)     ## observation size
+  ss <- nrow(initA)     ## state size
+  os <- nrow(initC)     ## observation size
 
   alpha <- matrix(0,os,os)
-  Tsum <- 0
-  for (ex in 1:N) {
-    y <- dataList[[ex]]
-    Tp <- ncol(y)
-    Tsum <- Tsum + Tp
-    alpha_temp <- matrix(0,os,os)
-    for (t in 1:Tp){
-      y_mat<-as.matrix(y[,t])
-      alpha_temp <- alpha_temp + y_mat %*% t(y_mat)
-    }
-    alpha <- alpha + alpha_temp
+  Tp <- ncol(y)
+  for (t in 1:Tp){
+    y_mat<-as.matrix(y[,t])
+    alpha <- alpha + y_mat %*% t(y_mat)
   }
 
   previous_loglik <- -Inf
@@ -48,6 +25,12 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
   converged <- FALSE
   num_iter <- 1
   LL <- vector()
+  estA <- initA
+  estC <- initC
+  estQ <- initQ
+  estR <- initR
+  estx <- initx
+  estV <- initV
 
   while (!converged & (num_iter <= max_iter)) {
 
@@ -59,22 +42,21 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
     beta <- matrix(0,ss,ss)
     P1sum <- matrix(0,ss,ss)
     x1sum <- matrix(0,ss,1)
-    xcurve <- array(0, dim=c(ss,Tp,N))
+    xcurve <- matrix(0,ss,Tp)
     loglik <- 0
 
-    for (ex in 1:N) {
-      y = dataList[[ex]]
-      estep <- Estep(y,A,C,Q,R,initx,initV,ARmode)
-      beta <- beta + estep$beta
-      gamma <- gamma + estep$gamma
-      delta <- delta + estep$delta
-      gamma1 <- gamma1 + estep$gamma1
-      gamma2 <- gamma2 + estep$gamma2
-      P1sum <- P1sum + estep$V1 + estep$x1 %*% t(estep$x1)
-      x1sum <- x1sum + estep$x1
-      xcurve[,,ex] <- estep$xsmooth
-      loglik <- loglik + estep$loglik
-    }
+
+    estep <- Estep(y,estA,estC,estQ,estR,estx,estV,ARmode)
+    beta <- estep$beta
+    gamma <- estep$gamma
+    delta <- estep$delta
+    gamma1 <- estep$gamma1
+    gamma2 <- estep$gamma2
+    P1sum <- estep$V1 + estep$x1 %*% t(estep$x1)
+    x1sum <- estep$x1
+    xcurve <- estep$xsmooth
+    loglik <- estep$loglik
+
     LL[num_iter] <- loglik
 
     if (verbose) {
@@ -84,7 +66,7 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
     num_iter <- num_iter + 1
 
     ## R step (row-based)
-    Tsum1 <- Tsum -N
+    Tp1 <- Tp - 1
 
     ## 10/13/2016.  Xing added an option of LargeP
     svec <- svd(gamma1)$d
@@ -96,22 +78,22 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
     }
 
 
-    A <- array()
+    A <- vector()
 
     XTX <- list()
-    Tp <- ncol(estep$xsmooth)   # the N-th state sequence
-    xlm <- t(matrix(xcurve[,1:(Tp-1),],ss,(Tp-1)*N))
+    #Tp <- ncol(estep$xsmooth)   # the N-th state sequence
+    xlm <- t(xcurve[,1:(Tp-1)])
 
     for (k in 1:ss){
       w <- abs(t(Aols[k,]))
       xs <- xlm * repmat(w,nrow(xlm),1)  ## x times weights
-      ylm <- matrix(xcurve[k,2:Tp,],(Tp-1)*N,1)
+      ylm <- as.matrix(xcurve[k,2:Tp])
       ww <- t(w) %*% w
       XTX$xtx <- gamma1 * ww
       XTX$xty <- t(beta[k,]*w)
 
       ## LARS-Lasso
-      main <- emlars(ylm, xs, XTX, ...)
+      main <- emlasso(ylm, xs, XTX,s.prop=s.prop, ...)
       sol <- main$history
 
       ## select min bic
@@ -142,32 +124,32 @@ ssmal <- function(data,A,C,Q,R,initx,initV,max_iter=10,diagQ=FALSE,
       ks <- which(bic == min(bic))
       A <- rbind(A,sol[[ks+1]]$beta * w)
     }
-    A <- A[-1,]
+    estA <- A
 
     ## M step
-    Q <- as.matrix(Q)
+    estQ <- as.matrix(estQ)
 
     if (diagQ) {
-      Q <- (gamma2 - A %*% t(beta)) / Tsum1
-      Q <- diag(diag(Q))
+      estQ <- (gamma2 - estA %*% t(beta)) / Tp1
+      estQ <- diag(diag(estQ))
     }
 
     if (!ARmode) {
-      C <- diag(os)   # Let C=I
-      R <- R
+      estC <- diag(os)   # Let C=I
+      estR <- as.matrix(estR)
       if (diagR) {
-        R <- (alpha - C %*% t(delta)) / Tsum
-        R <- diag(diag(R))
+        estR <- (alpha - estC %*% t(delta)) / Tp
+        estR <- diag(diag(estR))
       }
     }
-    initx <- x1sum / N
-    initV <- P1sum / N - initx %*% t(initx)
+    estx <- x1sum
+    estV <- P1sum - estx %*% t(estx)
 
     emConverge <- em_converged(loglik,previous_loglik,thresh)
     converged <- emConverge$converged
     previous_loglik <- loglik
   }
   ## Output
-  return(list(A=A,C=C,Q=Q,R=R,initx=initx,initV=initV,LL=LL,
+  return(list(estA=estA,estC=estC,estQ=estQ,estR=estR,estx=estx,estV=estV,LL=LL,
               xcurve=xcurve,bic=bic,num_iter=num_iter))
 }
