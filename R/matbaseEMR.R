@@ -87,7 +87,7 @@ matbaseERM <- function(y,initA,initC,initQ,initR,initx,initV,max_iter=100,
   	svec <- svd(gamma1)$d
   	if (min(svec)< max(svec)*.1^10 && length(gamma1)!=1) {
   	  ## This is the large p, small n case.
-  	  Aols <- beta %*% Rinv(diag(gamma1), s.prop=s.prop)   ## Equation (18)
+  	  Aols <- beta %*% Rinv(diag(diag(gamma1)), s.prop=s.prop)   ## Equation (18)
   	} else {                            #small p case
   	  Aols <- beta %*% Rinv(gamma1, s.prop=s.prop)   ## This is OLS/MLE
   	}
