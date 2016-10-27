@@ -56,7 +56,7 @@ emlasso <- function (y,x,XTX,
   my <- 0   ## mean of y, i.e., mean(y)
 
   # Determine the maximum number of kernels
-  dd <- svd(x)$d; xrank <- sum(dd>1e-9)
+  dd <- svd(x)$d; xrank <- sum(dd>1e-9*sum(dd))
   maxKernels <- min(xrank, p)
   if (maxMSE < 1e-10){
     warning("\n Maximum MSE is too small. Automatically set to 1.0e-10\n")
