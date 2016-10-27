@@ -24,13 +24,10 @@
 #   Written by Yu Gu
 
 kalman_update<-function(A,C,Q,R,y,x,V,...) {
-
   # Set default params
-
   u<-array()
   B<-array()
   initial <- FALSE
-
   ## Get optional input parameters
   getArgs<-list(...)
   nargs<-length(getArgs)
@@ -41,8 +38,6 @@ kalman_update<-function(A,C,Q,R,y,x,V,...) {
     else if (arg == "initial") {initial <- getArgs[[i+1]]}
     else {stop("Input parameter is unrecognizable!")}
   }
-
-
   #  xpred = E[X_t+1 | y[,1:t]
   #  Vpred = Cov[X_t+1 | y[,1:t]]
   if (initial){
@@ -74,11 +69,14 @@ kalman_update<-function(A,C,Q,R,y,x,V,...) {
     VR <- VR - temp * VR %*% t(C_mat) %*% C_mat %*% t(VR)
   }
 
-  Vnew <- VR
+  ## Note that due to numerical error, VR thus computed may not be
+  ## *exactly* symmetric. Over many iterations, such small asymmetry
+  ## can be accumulated into a large bias.  That's why I decide to
+  ## manually symmetrize it.
+  Vnew <- (VR + t(VR))/2
   K <- Vnew %*% t(C) %*% invR
   xnew <- xpred + K %*% e
   VVnew <- (diag(ss) - K %*% C) %*% A %*% V
-
   #Output
-  return(list(xnew = xnew,Vnew = Vnew,loglik = loglik,VVnew = VVnew,K = K))
+  return(list(xnew=xnew, Vnew=Vnew, loglik=loglik, VVnew=VVnew, K=K))
 }# end function
