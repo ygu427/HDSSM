@@ -125,6 +125,7 @@ rowbaseEMR <- function(y,initA,initC,initQ,initR,initx,initV,max_iter=100,diagQ=
       A <- rbind(A,sol[[ks+1]]$beta * w)
     }
     estA <- A
+    dimnames(estA) <- dimnames(initA)
 
     ## M step
     estQ <- as.matrix(estQ)

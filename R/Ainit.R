@@ -4,23 +4,43 @@
 ### using row-based ERM algorithm.
 ###
 ### Written by Yu GU
-### Latest version: Oct, 2016
+### Latest version: Feb, 2017
 
 
-Ainit <- function(inputData, s.prop=.1^6, ...){
-  ### Normalization
-  meanVector <- colMeans(inputData)
-  meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
-                    byrow = TRUE)
-  inputData <- inputData - meanMat
-  std <- apply(inputData,2,sd)
-  stdMat <- matrix(rep(std,nrow(inputData)),nrow = nrow(inputData),
-                   byrow = TRUE)
-  inputData <- inputData / stdMat
-  Tp <- nrow(inputData)
-  os <- ncol(inputData)
-  ss <- ncol(inputData)
-  xsmooth <- t(inputData)
+Ainit <- function(inputData, s.prop=.1^6, normalized=TRUE,...){
+  
+  ### If TRUE, Normalization is processed
+  if (normalized){
+    meanVector <- colMeans(inputData)
+    meanMat <- matrix(rep(meanVector,nrow(inputData)),nrow = nrow(inputData),
+                      byrow = TRUE)
+    inputData <- inputData - meanMat
+    std <- apply(inputData,2,sd)
+    stdMat <- matrix(rep(std,nrow(inputData)),nrow = nrow(inputData),
+                     byrow = TRUE)
+    inputData <- inputData / stdMat
+  }
+  
+  xsmooth <- t(inputData)      ## columns are time points now
+  
+  
+  ## Check the variability of each row of xsmooth
+  if(is.null(rownames(xsmooth))){
+    vynames <- seq(1, nrow(xsmooth))
+  } else {
+    vynames <- rownames(xsmooth)
+  }
+  
+  vys <- apply(xsmooth[, -1], 1, var)
+  zero.vars <- which(vys==0)
+  if (length(zero.vars)>0) {
+    warning(paste("Variable", paste(vynames[zero.vars], collapse=", "), "has zero variance (excluding the first time point). We have to exclude this/these variables from network reconstruction."))
+    xsmooth <- xsmooth[-zero.vars,]
+  }
+  
+  Tp <- ncol(xsmooth)        ## number of time points
+  os <- nrow(xsmooth)        ## object space size
+  ss <- nrow(xsmooth)        ## state space size
 
   ### OLS for system matrix A
   gamma <- matrix(0,ss,ss)
@@ -88,6 +108,8 @@ Ainit <- function(inputData, s.prop=.1^6, ...){
     As <- rbind(As,sol[[ks+1]]$beta * w)
   }
   As <- As[-1,]
+  rownames(As) <- rownames(xsmooth)
+  colnames(As) <- rownames(xsmooth)
 
   return(list(Ainit=As, norm.data=xsmooth))
 }
